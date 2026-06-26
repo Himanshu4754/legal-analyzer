@@ -10,7 +10,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout , updateUser } = useAuth();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,8 +18,24 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetchDocuments();
-  }, []);
+  fetchDocuments();
+
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get("payment") === "success" && user) {
+    const updatedUser = {
+      ...user,
+      isPremium: true,
+      premiumSince: new Date(),
+    };
+
+    updateUser(updatedUser);
+
+    toast.success("🎉 Welcome to Premium!");
+
+    window.history.replaceState({}, "", "/dashboard");
+  }
+}, []);
 
   const fetchDocuments = async () => {
     try {
@@ -33,29 +49,45 @@ export default function Dashboard() {
   };
 
   const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast.error("Only PDF files allowed");
-      return;
-    }
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const formData = new FormData();
-    formData.append("pdf", file);
+  if (file.type !== "application/pdf") {
+    toast.error("Only PDF files allowed");
+    return;
+  }
 
-    setUploading(true);
-    toast.loading("Analyzing document with AI...", { id: "upload" });
+  const formData = new FormData();
+  formData.append("pdf", file);
 
-    try {
-      const { data } = await API.post("/documents/upload", formData);
-      setDocuments([data, ...documents]);
-      toast.success("Document analyzed successfully!", { id: "upload" });
-    } catch (err) {
-      toast.error("Upload failed", { id: "upload" });
-    } finally {
-      setUploading(false);
-    }
-  };
+  setUploading(true);
+  toast.loading("Analyzing document with AI...", { id: "upload" });
+
+  try {
+    const { data } = await API.post("/documents/upload", formData);
+    setDocuments([data, ...documents]);
+    toast.success("Document analyzed successfully!", { id: "upload" });
+  } catch (err) {
+  const message = err.response?.data?.message || "";
+
+  if (err.response?.data?.upgradeRequired) {
+  toast(message, {
+    id: "upload",
+    icon: "👑",
+  });
+
+  setTimeout(() => {
+    navigate("/pricing");
+  }, 1000);
+
+  return;
+}
+
+  toast.error(message || "Upload failed", { id: "upload" });
+} finally {
+    setUploading(false);
+  }
+};
 
   const handleDelete = async (id) => {
     try {
