@@ -106,6 +106,12 @@ const askDocumentQuestion = async (req, res) => {
       return res.status(400).json({ message: "Question is required" });
     }
     const answer = await askQuestion(document.extractedText, question);
+    // Save to chat history
+    await Document.findByIdAndUpdate(req.params.id, {
+      $push: {
+        chatHistory: { question, answer },
+      },
+    });
     return res.json({ question, answer });
   } catch (error) {
     return res.status(500).json({ message: error.message });

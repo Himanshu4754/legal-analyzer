@@ -41,18 +41,30 @@ export default function DocumentDetail() {
   };
 
   const handleAsk = async (e) => {
-    e.preventDefault();
-    if (!question.trim()) return;
-    setAsking(true);
-    try {
-      const { data } = await API.post(`/documents/${id}/ask`, { question });
-      setAnswer(data.answer);
-    } catch (err) {
-      toast.error("Failed to get answer");
-    } finally {
-      setAsking(false);
-    }
-  };
+  e.preventDefault();
+
+  if (!question.trim()) return;
+
+  setAsking(true);
+
+  try {
+    const { data } = await API.post(`/documents/${id}/ask`, {
+      question,
+    });
+
+    setAnswer(data.answer);
+
+    // Refresh document so latest chat history appears
+    fetchDocument();
+
+    // Clear input box
+    setQuestion("");
+  } catch (err) {
+    toast.error("Failed to get answer");
+  } finally {
+    setAsking(false);
+  }
+};
 
   const getRiskColor = (level) => {
     if (level === "High") return "text-red-600 bg-red-50 border-red-200";
@@ -136,59 +148,145 @@ export default function DocumentDetail() {
               </div>
             )}
 
-            {/* Risky Clauses */}
+            {/* Risky Clauses with Highlighting */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                Risky Clauses {doc.riskyClauses?.length > 0 && `(${doc.riskyClauses.length})`}
+                Risky Clauses{" "}
+                {doc.riskyClauses?.length > 0 && (
+                  <span className="text-sm font-normal text-gray-500">
+                    ({doc.riskyClauses.length} found)
+                  </span>
+                )}
               </h2>
+
               {doc.riskyClauses && doc.riskyClauses.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {doc.riskyClauses.map((clause, i) => (
-                    <div key={i} className={`border-l-4 rounded-r-lg p-4 ${getClauseColor(clause.risk)}`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${clause.risk === "high" ? "bg-red-100 text-red-700" : clause.risk === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>
+                    <div
+                      key={i}
+                      className={`rounded-xl p-4 border-l-4 ${
+                        clause.risk === "high"
+                          ? "bg-red-50 border-l-red-500"
+                          : clause.risk === "medium"
+                          ? "bg-yellow-50 border-l-yellow-500"
+                          : "bg-green-50 border-l-green-500"
+                      }`}
+                    >
+                      {/* Risk Badge */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${
+                            clause.risk === "high"
+                              ? "bg-red-100 text-red-700"
+                              : clause.risk === "medium"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {clause.risk === "high" ? "🔴" : clause.risk === "medium" ? "🟡" : "🟢"}{" "}
                           {clause.risk} risk
                         </span>
                       </div>
-                      <p className="text-gray-700 text-sm font-medium mb-1">{clause.text}</p>
-                      <p className="text-gray-500 text-xs">{clause.explanation}</p>
+
+                      {/* Highlighted Clause Text */}
+                      <div
+                        className={`text-sm font-mono p-3 rounded-lg mb-2 leading-relaxed ${
+                          clause.risk === "high"
+                            ? "bg-red-100 text-red-900"
+                            : clause.risk === "medium"
+                            ? "bg-yellow-100 text-yellow-900"
+                            : "bg-green-100 text-green-900"
+                        }`}
+                      >
+                        "{clause.text}"
+                      </div>
+
+                      {/* Explanation */}
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle
+                          className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                            clause.risk === "high"
+                              ? "text-red-500"
+                              : clause.risk === "medium"
+                              ? "text-yellow-500"
+                              : "text-green-500"
+                          }`}
+                        />
+                        <p className="text-gray-600 text-sm">{clause.explanation}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-green-600">
+                <div className="flex items-center gap-2 text-green-600 bg-green-50 p-4 rounded-lg">
                   <CheckCircle className="w-5 h-5" />
-                  <span>No risky clauses detected</span>
+                  <span>No risky clauses detected — this document looks safe</span>
                 </div>
               )}
             </div>
 
-            {/* Ask AI */}
+            {/* Ask AI with Chat History */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Ask AI About This Document</h2>
-              <form onSubmit={handleAsk} className="flex gap-3">
-                <input
-                  type="text"
-                  placeholder="e.g. What are my termination rights?"
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  disabled={asking}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition disabled:opacity-50 text-sm font-medium"
-                >
-                  <Send className="w-4 h-4" />
-                  {asking ? "Asking..." : "Ask"}
-                </button>
-              </form>
-              {answer && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm font-medium text-blue-800 mb-1">AI Answer:</p>
-                  <p className="text-gray-700 text-sm leading-relaxed">{answer}</p>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                Ask AI About This Document
+              </h2>
+
+              {/* Chat History */}
+              {doc.chatHistory && doc.chatHistory.length > 0 && (
+                <div className="mb-4 space-y-3 max-h-64 overflow-y-auto">
+                  {doc.chatHistory.map((chat, i) => (
+                    <div key={i} className="space-y-2">
+                      {/* User Question */}
+                      <div className="flex justify-end">
+                        <div className="bg-blue-600 text-white text-sm px-4 py-2 rounded-2xl rounded-tr-none max-w-xs">
+                          {chat.question}
+                        </div>
+                      </div>
+                      {/* AI Answer */}
+                      <div className="flex justify-start">
+                        <div className="bg-gray-100 text-gray-700 text-sm px-4 py-2 rounded-2xl rounded-tl-none max-w-sm">
+                          {chat.answer}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
+
+              {/* Current Answer */}
+              {answer && (
+                <div className="mb-4 space-y-2">
+                  <div className="flex justify-end">
+                    <div className="bg-blue-600 text-white text-sm px-4 py-2 rounded-2xl rounded-tr-none max-w-xs">
+                      {question}
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 text-gray-700 text-sm px-4 py-2 rounded-2xl rounded-tl-none max-w-sm">
+                      {answer}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            {/* Input */}
+            <form onSubmit={handleAsk} className="flex gap-3 mt-4">
+              <input
+                type="text"
+                placeholder="e.g. What are my termination rights?"
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={asking}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition disabled:opacity-50 text-sm font-medium"
+              >
+                <Send className="w-4 h-4" />
+                {asking ? "..." : "Ask"}
+              </button>
+            </form>
             </div>
           </div>
 
@@ -257,7 +355,8 @@ export default function DocumentDetail() {
               </div>
               <button
                   onClick={() => generateReport(doc)}
-                  className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+                  className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm"
+>
                   <Download className="w-4 h-4" />
                   Download PDF Report
                 </button>

@@ -6,6 +6,12 @@ const clauseSchema = new mongoose.Schema({
   explanation: String,
 });
 
+const chatSchema = new mongoose.Schema({
+  question: String,
+  answer: String,
+  createdAt: { type: Date, default: Date.now },
+});
+
 const documentSchema = new mongoose.Schema(
   {
     user: {
@@ -21,6 +27,7 @@ const documentSchema = new mongoose.Schema(
     riskLevel: { type: String, default: "Low" },
     riskyClauses: [clauseSchema],
     keyPoints: [{ type: String }],
+    chatHistory: [chatSchema],
     status: {
       type: String,
       enum: ["processing", "completed", "failed"],
