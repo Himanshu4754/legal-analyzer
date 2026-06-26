@@ -22,7 +22,6 @@ export default function DocumentDetail() {
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
   const [asking, setAsking] = useState(false);
 
   useEffect(() => {
@@ -52,7 +51,7 @@ export default function DocumentDetail() {
       question,
     });
 
-    setAnswer(data.answer);
+    
 
     // Refresh document so latest chat history appears
     fetchDocument();
@@ -253,21 +252,7 @@ export default function DocumentDetail() {
                 </div>
               )}
 
-              {/* Current Answer */}
-              {answer && (
-                <div className="mb-4 space-y-2">
-                  <div className="flex justify-end">
-                    <div className="bg-blue-600 text-white text-sm px-4 py-2 rounded-2xl rounded-tr-none max-w-xs">
-                      {question}
-                    </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-700 text-sm px-4 py-2 rounded-2xl rounded-tl-none max-w-sm">
-                      {answer}
-                    </div>
-                  </div>
-                </div>
-              )}
+              
 
             {/* Input */}
             <form onSubmit={handleAsk} className="flex gap-3 mt-4">

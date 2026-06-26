@@ -26,6 +26,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use("/api/stripe", require("./routes/stripeRoutes"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -40,7 +42,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 // Document routes
 app.use("/api/documents", require("./routes/documentRoutes"));
 
-app.use("/api/stripe", require("./routes/stripeRoutes"));
+
 
 mongoose
   .connect(process.env.MONGO_URI)
